@@ -1,0 +1,94 @@
+Video Downloading Script: 
+The video downloading script is designed to automate the retrieval of multiple videos from YouTube for analysis. Using the yt-dlp library, 
+a powerful tool for downloading videos from various platforms, the script systematically downloads videos specified in a list of URLs. 
+The script starts by defining the target video URLs and checks if the specified download directory exists, creating it if necessary.
+For each video URL, yt-dlp downloads the video in the MP4 format, saving it to the specified directory. This automated process ensures
+ that all required videos are easily accessible for further processing, eliminating the need for manual downloading and saving of files. 
+This method is particularly efficient when dealing with large batches of videos, as it allows quick and consistent acquisition of data
+for analysis and testing.
+
+
+
+Person Detection and Tracking: 
+
+
+The person detection and tracking script is the core of the assignment, aiming to identify and track individuals
+in the downloaded videos. Using the YOLO model, specifically the YOLOv8 variant, 
+the script detects persons (both children and adults) in each frame of the input video. After loading the model and the video, the track function
+is utilized to detect people and track their movements across frames, assigning unique IDs to each individual.
+The script captures frames from the video, processes them to identify objects, and filters detections to focus exclusively on persons.
+It handles re-identification, ensuring that if a person exits and re-enters the frame, the correct ID is reassigned, 
+making the tracking robust to occlusions and temporary absences.
+
+The results are plotted on the video frames, with bounding boxes and IDs displayed, and the processed frames 
+are saved to an output video file. The entire process is visualized in real time, providing immediate feedback on the accuracy and consistency of the tracking. 
+This implementation is crucial for behavioral analysis in therapeutic settings, allowing for detailed monitoring of interactions between therapists and children with ASD.
+
+
+## Here is a more detailed explanation of the Tracking script ##
+
+
+
+Setting Up Video Input and Output:
+
+video_path = 'Group Therapy for Autism Spectrum Disorder.mp4'
+cap = cv2.VideoCapture(video_path)
+output = cv2.VideoWriter("output.avi", cv2.VideoWriter_fourcc(*'MPEG'), 25, (int(cap.get(3)), int(cap.get(4))))
+
+Input Video (video_path): Specifies the video file to be processed.
+cv2.VideoCapture(video_path): Opens the video file for reading frames.
+Output Video (output.avi): Creates a new video file to save the processed frames. 
+The cv2.VideoWriter function specifies the file format, codec, and frame size.
+
+
+Tracking Objects in the Video:
+
+results = model.track(video_path, persist=True, stream=True, conf=0.25, task='detect')
+
+persist=True: Keeps track of object IDs even across multiple frames.
+stream=True: Allows real-time streaming of the tracking results.
+
+
+Iterating Through Detected Results:
+
+max_track_id = 0
+for result in results:
+    summary = result.summary()
+    filtered_detections = []
+    for s in summary:
+        if 'track_id' in s and 'name' in s and s['name'] == 'person':
+            if s['track_id'] > max_track_id:
+                max_track_id = s['track_id']
+            filtered_detections.append(s)
+
+result.summary(): Summarizes the detection, including the object's name (e.g., person) and track ID.
+Filtering Detections: The code only keeps detections labeled as person and updates the highest track_id seen so far.
+
+Displaying and Saving the Tracked Frames:
+
+tracked_frame = result.plot()  # Plots the bounding boxes and IDs on the frame
+output.write(tracked_frame)    # Writes the processed frame to the output video
+cv2.imshow('frame', tracked_frame)  # Displays the frame with detections
+if cv2.waitKey(25) & 0xFF == ord('q'):  # Stops if 'q' is pressed
+    break
+
+result.plot(): Draws bounding boxes around detected persons and displays their unique IDs on the frame.
+output.write(tracked_frame): Saves the annotated frame to the output video.
+cv2.imshow(): Shows the current frame in a window.
+
+Releasing Resources:
+
+output.release()
+cap.release()
+cv2.destroyAllWindows()
+
+Releases the video files and closes any display windows after processing is complete.
+
+
+Improvements for Detection and Tracking:
+
+To further enhance the tracking performance, integrating advanced re-identification models such as DeepSORT can be considered. 
+These models use deep learning-based appearance descriptors,improving the consistency of tracking during occlusions or when individuals exit
+and re-enter the frame. Fine-tuning the YOLO model for the specific dataset, or using custom-trained models with additional classes specific to children and adults, can also improve detection accuracy. 
+Additionally, implementing adaptive tracking parameters or multi-camera setups could further refine the system’s ability to handle
+complex scenarios and improve the robustness of tracking in diverse environments.
